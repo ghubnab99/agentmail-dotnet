@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <PackageId>AgentMail.AspNetCore</PackageId>
+    <Version>0.1.0-preview.1</Version>
+    <Description>ASP.NET Core integration for AgentMail.</Description>
+    <Authors>Mohammed Nabil</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/ghubnab99/agentmail-dotnet</RepositoryUrl>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="../AgentMail.Client/AgentMail.Client.csproj" />
+  </ItemGroup>
+</Project>
