@@ -28,7 +28,7 @@ AgentMail gives AI agents programmable email inboxes. This project brings that A
 
 - Create an inbox with `client_id` idempotency
 - Retrieve an inbox
-- Send email with optional `Idempotency-Key`
+- Send email and reply in-thread with optional `Idempotency-Key`
 - Bearer authentication
 - ASP.NET Core dependency injection
 - Svix webhook signature verification (tested against Svix's reference vectors)
@@ -111,6 +111,29 @@ The default deduplicator is in-memory. When running more than one instance, regi
    ```
 
 4. Send an email to your AgentMail inbox. The sample logs the verified event.
+
+## Customer Operations Workflow Demo
+
+`samples/AgentMail.Demo` shows the SDK in a realistic workflow, using payment dispute intake as the example:
+
+1. A customer emails the demo inbox.
+2. The verified webhook opens a case, and a rules-based extractor pulls out the amount, merchant and date.
+3. The app drafts an acknowledgement, and it is only sent after a person clicks **Approve & Reply**.
+4. The reply goes out with `ReplyMessageAsync` in the customer's original thread. Its `Idempotency-Key` is derived from the inbound message, so a retry can never send a second email.
+5. A live timeline shows AgentMail's `message.sent` and `message.delivered` events, blocked duplicate deliveries, and rejected webhooks.
+6. **Replay same delivery** re-sends the exact captured request. Within 5 minutes it is detected as a duplicate (no second case, no second reply). After 5 minutes it is rejected as stale.
+
+The app listens on two loopback ports. **5080** serves only the webhook, and only this port should be exposed through a tunnel. **5081** serves the dashboard, including its Approve and Replay actions. Replies only go to allowlisted addresses.
+
+```bash
+dotnet user-secrets set "AgentMail:ApiKey" "am_..." --project samples/AgentMail.Demo
+dotnet user-secrets set "AgentMail:WebhookSecret" "whsec_..." --project samples/AgentMail.Demo
+dotnet user-secrets set "Demo:AllowedRecipients:0" "you@example.com" --project samples/AgentMail.Demo
+devtunnel host -p 5080 --allow-anonymous
+dotnet run --project samples/AgentMail.Demo
+```
+
+Then open http://localhost:5081. Subscribe the AgentMail webhook to `message.received`, `message.sent` and `message.delivered`, and send an email to the inbox address shown in the header. The demo and `AgentMail.WebhookSample` both use port 5080, so run one at a time.
 
 ## Roadmap
 

@@ -9,4 +9,12 @@ public interface IAgentMailClient
         SendMessageRequest request,
         string? idempotencyKey = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>Replies to a message in its existing thread.</summary>
+    Task<SendMessageResponse> ReplyMessageAsync(
+        string inboxId,
+        string messageId,
+        ReplyMessageRequest request,
+        string? idempotencyKey = null,
+        CancellationToken cancellationToken = default);
 }

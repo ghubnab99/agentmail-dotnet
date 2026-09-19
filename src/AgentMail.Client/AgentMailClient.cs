@@ -61,9 +61,36 @@ public sealed class AgentMailClient : IAgentMailClient
         ArgumentException.ThrowIfNullOrWhiteSpace(inboxId);
         ArgumentNullException.ThrowIfNull(request);
 
-        using var message = new HttpRequestMessage(
-            HttpMethod.Post,
-            $"v0/inboxes/{Uri.EscapeDataString(inboxId)}/messages/send")
+        return await PostSendAsync(
+            $"v0/inboxes/{Uri.EscapeDataString(inboxId)}/messages/send",
+            request, idempotencyKey, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<SendMessageResponse> ReplyMessageAsync(
+        string inboxId,
+        string messageId,
+        ReplyMessageRequest request,
+        string? idempotencyKey = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(inboxId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(messageId);
+        ArgumentNullException.ThrowIfNull(request);
+
+        return await PostSendAsync(
+            $"v0/inboxes/{Uri.EscapeDataString(inboxId)}/messages/{Uri.EscapeDataString(messageId)}/reply",
+            request, idempotencyKey, cancellationToken).ConfigureAwait(false);
+    }
+
+    // AgentMail makes sends, replies and forwards idempotent through the Idempotency-Key header:
+    // a retry with the same key returns the original message instead of sending again.
+    private async Task<SendMessageResponse> PostSendAsync<TRequest>(
+        string path,
+        TRequest request,
+        string? idempotencyKey,
+        CancellationToken cancellationToken)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, path)
         {
             Content = JsonContent.Create(request, options: JsonOptions)
         };
