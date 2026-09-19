@@ -20,7 +20,7 @@ public sealed class AgentMailClientTests
         Assert.Equal("/v0/inboxes", handler.RequestUri?.AbsolutePath);
         Assert.Equal("Bearer", handler.AuthorizationScheme);
         Assert.Equal("test-api-key", handler.AuthorizationParameter);
-        Assert.Contains(""client_id":"customer-42"", handler.Body);
+        Assert.Contains("\"client_id\":\"customer-42\"", handler.Body);
     }
 
     [Fact]
