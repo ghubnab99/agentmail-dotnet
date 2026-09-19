@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <PackageId>AgentMail.Client</PackageId>
+    <Version>0.1.0-preview.1</Version>
+    <Description>Community .NET client for the AgentMail API.</Description>
+    <Authors>Mohammed Nabil</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/ghubnab99/agentmail-dotnet</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>agentmail;ai;agents;email;sdk</PackageTags>
+  </PropertyGroup>
+</Project>

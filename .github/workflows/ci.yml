@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-pack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet restore AgentMail.sln
+      - run: dotnet build AgentMail.sln --configuration Release --no-restore
+      - run: dotnet test AgentMail.sln --configuration Release --no-build --collect:"XPlat Code Coverage"
+      - run: dotnet pack src/AgentMail.Client/AgentMail.Client.csproj --configuration Release --no-build --output artifacts
+      - run: dotnet pack src/AgentMail.AspNetCore/AgentMail.AspNetCore.csproj --configuration Release --no-build --output artifacts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nuget-preview
+          path: artifacts/*
