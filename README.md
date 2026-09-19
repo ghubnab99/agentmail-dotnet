@@ -1,8 +1,24 @@
 # AgentMail .NET
 
+[![CI](https://github.com/ghubnab99/agentmail-dotnet/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ghubnab99/agentmail-dotnet/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/ghubnab99/agentmail-dotnet?include_prereleases&label=release)](https://github.com/ghubnab99/agentmail-dotnet/releases)
+![.NET 8](https://img.shields.io/badge/.NET-8.0-512BD4)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 Production-oriented community .NET SDK and ASP.NET Core integration for [AgentMail](https://agentmail.to).
 
 > **Status:** early preview. This is an independent community project and is not an official AgentMail SDK.
+
+## Verified against the live API
+
+The full loop has been run against production AgentMail, not just mocks:
+
+| Step | Result |
+|---|---|
+| Create an inbox with `client_id` | Inbox created. Rerunning returns the same inbox instead of a duplicate |
+| Send an email | Delivered to a Gmail inbox, not spam |
+| Receive a reply through a webhook | `message.received` arrived over a Dev Tunnel, the Svix signature was verified, and the event was parsed with its message and thread |
+| Replay and forgery | A repeated delivery is acknowledged but not processed twice. A forged signature is rejected with `400` |
 
 ## Why this exists
 
@@ -24,13 +40,21 @@ AgentMail gives AI agents programmable email inboxes. This project brings that A
 
 ## Quickstart
 
-Set `AGENTMAIL_API_KEY`, then run:
+Store your API key once with [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets). It stays outside the repository and out of your shell history:
 
 ```bash
+dotnet user-secrets set "AgentMail:ApiKey" "am_..." --project samples/AgentMail.Quickstart
 dotnet run --project samples/AgentMail.Quickstart
 ```
 
-Set `AGENTMAIL_TO_EMAIL` as well if you want the sample to send a message after creating/reusing its inbox.
+The sample creates an inbox, or reuses it on later runs. To also send yourself an email:
+
+```bash
+dotnet user-secrets set "AgentMail:ToEmail" "you@example.com" --project samples/AgentMail.Quickstart
+dotnet run --project samples/AgentMail.Quickstart
+```
+
+The `AGENTMAIL_API_KEY` and `AGENTMAIL_TO_EMAIL` environment variables also work, which is useful in CI.
 
 ## ASP.NET Core
 
