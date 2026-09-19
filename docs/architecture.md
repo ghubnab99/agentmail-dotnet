@@ -12,10 +12,11 @@ Application
    |      +-- send idempotency
    |
    +-- AgentMail.AspNetCore
-          +-- dependency injection
-          +-- verified Svix-style webhooks
+          +-- dependency injection (client and webhooks registered separately)
+          +-- verified Svix webhooks over the raw body
           +-- timestamp tolerance
-          +-- typed event envelope
+          +-- duplicate-delivery protection (IAgentMailWebhookDeduplicator)
+          +-- typed message.received events
 ```
 
 The initial vertical slice covers inbox creation, inbox retrieval, message sending, ASP.NET Core registration, and verified webhook ingestion.
