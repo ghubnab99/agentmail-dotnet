@@ -15,5 +15,6 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <ProjectReference Include="../../src/AgentMail.Client/AgentMail.Client.csproj" />
+    <Using Include="Xunit" />
   </ItemGroup>
 </Project>
