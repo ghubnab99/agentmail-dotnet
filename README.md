@@ -19,6 +19,16 @@ The full loop has been run against production AgentMail, not just mocks:
 | Send an email | Delivered to a Gmail inbox, not spam |
 | Receive a reply through a webhook | `message.received` arrived over a Dev Tunnel, the Svix signature was verified, and the event was parsed with its message and thread |
 | Replay and forgery | A repeated delivery is acknowledged but not processed twice. A forged signature is rejected with `400` |
+| Reply in thread | A reply sent to the inbound message id arrived inside the original Gmail thread, with `message.sent` and `message.delivered` following over the webhook |
+| Retry with the same `Idempotency-Key` | Returned the original `message_id` and no second email was sent |
+
+### Constraints observed in that run
+
+Behaviour seen on 2026-09-20, recorded because it is not obvious from the SDK surface. These are observations of the live API on that date, not guarantees about future behaviour.
+
+- `Idempotency-Key` was accepted only with the characters `A-Z a-z 0-9 - . _ ~`; anything else came back as `400 validation_error`. `AgentMailClient` now checks this before sending.
+- An inbox `display_name` containing parentheses was rejected with `400 validation_error`.
+- A reply with no `text` or `html` was accepted and delivered as an empty email.
 
 ## Why this exists
 
