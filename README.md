@@ -9,6 +9,10 @@ Production-oriented community .NET SDK and ASP.NET Core integration for [AgentMa
 
 > **Status:** early preview. This is an independent community project and is not an official AgentMail SDK.
 
+## Why this exists
+
+AgentMail gives AI agents programmable email inboxes. This project brings that API into the .NET ecosystem with patterns expected in production services: typed clients, cancellation, idempotency, dependency injection, verified webhooks, and a path toward observability and enterprise hardening.
+
 ## Verified against the live API
 
 The full loop has been run against production AgentMail, not just mocks:
@@ -30,9 +34,6 @@ Behaviour seen on 2026-09-20, recorded because it is not obvious from the SDK su
 - An inbox `display_name` containing parentheses was rejected with `400 validation_error`.
 - A reply with no `text` or `html` was accepted and delivered as an empty email.
 
-## Why this exists
-
-AgentMail gives AI agents programmable email inboxes. This project brings that API into the .NET ecosystem with patterns expected in production services: typed clients, cancellation, idempotency, dependency injection, verified webhooks, and a path toward observability and enterprise hardening.
 
 ## Current vertical slice
 
