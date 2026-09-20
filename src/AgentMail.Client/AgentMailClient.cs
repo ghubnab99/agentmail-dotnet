@@ -97,11 +97,28 @@ public sealed class AgentMailClient : IAgentMailClient
 
         if (!string.IsNullOrWhiteSpace(idempotencyKey))
         {
+            ValidateIdempotencyKey(idempotencyKey);
             message.Headers.TryAddWithoutValidation("Idempotency-Key", idempotencyKey);
         }
 
         using var response = await _httpClient.SendAsync(message, cancellationToken).ConfigureAwait(false);
         return await ReadAsync<SendMessageResponse>(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    // AgentMail rejects any other character with HTTP 400, so the key is checked here: a caller
+    // sees the offending key at the call site instead of decoding a validation error from the server.
+    private static void ValidateIdempotencyKey(string idempotencyKey)
+    {
+        foreach (var c in idempotencyKey)
+        {
+            if (!(char.IsAsciiLetterOrDigit(c) || c is '-' or '.' or '_' or '~'))
+            {
+                throw new ArgumentException(
+                    $"Idempotency key \"{idempotencyKey}\" contains the unsupported character '{c}'. " +
+                    "AgentMail allows only A-Z, a-z, 0-9, -, ., _ and ~.",
+                    nameof(idempotencyKey));
+            }
+        }
     }
 
     private static async Task<T> ReadAsync<T>(

@@ -118,7 +118,8 @@ public sealed class DisputeWorkflow(DemoState state, ICaseExtractor extractor, I
             RecipientAllowed = allowed,
             // One acknowledgement per inbound email, stable across restarts. A retry of this send can
             // never produce a second email; a different logical response would get a new version suffix.
-            IdempotencyKey = $"dispute:{Hash(message.MessageId)}:acknowledgement:v1",
+            // Dots separate the segments because AgentMail restricts the key to A-Z a-z 0-9 - . _ ~.
+            IdempotencyKey = $"dispute.{Hash(message.MessageId)}.acknowledgement.v1",
             Status = allowed ? CaseStatus.AwaitingApproval : CaseStatus.ReplyBlocked
         };
 

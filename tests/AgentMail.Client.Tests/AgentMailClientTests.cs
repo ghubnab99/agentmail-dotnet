@@ -56,7 +56,7 @@ public sealed class AgentMailClientTests
             "support@agentmail.to",
             "<abc123@agentmail.to>",
             new ReplyMessageRequest { Text = "Thanks, we are on it." },
-            "dispute:abc:acknowledgement:v1");
+            "dispute.abc.acknowledgement.v1");
 
         Assert.Equal("<reply@agentmail.to>", result.MessageId);
         Assert.Equal("thd_1", result.ThreadId);
@@ -64,8 +64,28 @@ public sealed class AgentMailClientTests
         Assert.Equal(
             "/v0/inboxes/support%40agentmail.to/messages/%3Cabc123%40agentmail.to%3E/reply",
             handler.RequestUri?.AbsolutePath);
-        Assert.Equal("dispute:abc:acknowledgement:v1", handler.IdempotencyKey);
+        Assert.Equal("dispute.abc.acknowledgement.v1", handler.IdempotencyKey);
         Assert.Equal("""{"text":"Thanks, we are on it."}""", handler.Body);
+    }
+
+    [Theory]
+    [InlineData("dispute:abc:v1")]
+    [InlineData("case/4821")]
+    [InlineData("order 4821")]
+    public async Task SendMessageAsync_RejectsIdempotencyKeysAgentMailWouldRefuse(string idempotencyKey)
+    {
+        // AgentMail allows only A-Z a-z 0-9 - . _ ~ and answers anything else with HTTP 400.
+        var handler = new RecordingHandler("""{"message_id":"m","thread_id":"t"}""");
+        using var httpClient = new HttpClient(handler);
+        var client = new AgentMailClient(httpClient, "test-api-key");
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() => client.SendMessageAsync(
+            "support@agentmail.to",
+            new SendMessageRequest { To = ["customer@example.com"], Subject = "Hi", Text = "Hi" },
+            idempotencyKey));
+
+        Assert.Equal("idempotencyKey", exception.ParamName);
+        Assert.Null(handler.RequestUri);
     }
 
     [Fact]
