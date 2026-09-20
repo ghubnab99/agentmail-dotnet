@@ -32,6 +32,21 @@ public sealed record SendMessageRequest
     [JsonPropertyName("reply_to")] public IReadOnlyList<string>? ReplyTo { get; init; }
 }
 
+public sealed record ReplyMessageRequest
+{
+    [JsonPropertyName("text")] public string? Text { get; init; }
+    [JsonPropertyName("html")] public string? Html { get; init; }
+
+    // Reply to every original recipient, not just the sender.
+    [JsonPropertyName("reply_all")] public bool? ReplyAll { get; init; }
+
+    // Override the recipients derived from the original message.
+    [JsonPropertyName("to")] public IReadOnlyList<string>? To { get; init; }
+    [JsonPropertyName("cc")] public IReadOnlyList<string>? Cc { get; init; }
+    [JsonPropertyName("bcc")] public IReadOnlyList<string>? Bcc { get; init; }
+    [JsonPropertyName("labels")] public IReadOnlyList<string>? Labels { get; init; }
+}
+
 public sealed record SendMessageResponse
 {
     [JsonPropertyName("message_id")] public string? MessageId { get; init; }

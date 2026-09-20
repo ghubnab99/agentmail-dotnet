@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <UserSecretsId>agentmail-dotnet-demo</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/AgentMail.AspNetCore/AgentMail.AspNetCore.csproj" />
+  </ItemGroup>
+</Project>

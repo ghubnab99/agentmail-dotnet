@@ -61,20 +61,64 @@ public sealed class AgentMailClient : IAgentMailClient
         ArgumentException.ThrowIfNullOrWhiteSpace(inboxId);
         ArgumentNullException.ThrowIfNull(request);
 
-        using var message = new HttpRequestMessage(
-            HttpMethod.Post,
-            $"v0/inboxes/{Uri.EscapeDataString(inboxId)}/messages/send")
+        return await PostSendAsync(
+            $"v0/inboxes/{Uri.EscapeDataString(inboxId)}/messages/send",
+            request, idempotencyKey, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<SendMessageResponse> ReplyMessageAsync(
+        string inboxId,
+        string messageId,
+        ReplyMessageRequest request,
+        string? idempotencyKey = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(inboxId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(messageId);
+        ArgumentNullException.ThrowIfNull(request);
+
+        return await PostSendAsync(
+            $"v0/inboxes/{Uri.EscapeDataString(inboxId)}/messages/{Uri.EscapeDataString(messageId)}/reply",
+            request, idempotencyKey, cancellationToken).ConfigureAwait(false);
+    }
+
+    // AgentMail makes sends, replies and forwards idempotent through the Idempotency-Key header:
+    // a retry with the same key returns the original message instead of sending again.
+    private async Task<SendMessageResponse> PostSendAsync<TRequest>(
+        string path,
+        TRequest request,
+        string? idempotencyKey,
+        CancellationToken cancellationToken)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, path)
         {
             Content = JsonContent.Create(request, options: JsonOptions)
         };
 
         if (!string.IsNullOrWhiteSpace(idempotencyKey))
         {
+            ValidateIdempotencyKey(idempotencyKey);
             message.Headers.TryAddWithoutValidation("Idempotency-Key", idempotencyKey);
         }
 
         using var response = await _httpClient.SendAsync(message, cancellationToken).ConfigureAwait(false);
         return await ReadAsync<SendMessageResponse>(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    // AgentMail rejects any other character with HTTP 400, so the key is checked here: a caller
+    // sees the offending key at the call site instead of decoding a validation error from the server.
+    private static void ValidateIdempotencyKey(string idempotencyKey)
+    {
+        foreach (var c in idempotencyKey)
+        {
+            if (!(char.IsAsciiLetterOrDigit(c) || c is '-' or '.' or '_' or '~'))
+            {
+                throw new ArgumentException(
+                    $"Idempotency key \"{idempotencyKey}\" contains the unsupported character '{c}'. " +
+                    "AgentMail allows only A-Z, a-z, 0-9, -, ., _ and ~.",
+                    nameof(idempotencyKey));
+            }
+        }
     }
 
     private static async Task<T> ReadAsync<T>(

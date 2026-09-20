@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Customer Operations Workflow Demo</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --card: #ffffff; --ink: #16181d; --muted: #667085; --line: #e4e7ec;
+    --accent: #3b5bdb; --ok: #12805c; --ok-bg: #e7f6ef; --warn: #b54708; --warn-bg: #fef3e2;
+    --bad: #c01048; --bad-bg: #fdecf1; --info: #3b5bdb; --info-bg: #edf1fd;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif; }
+  header { background: #101828; color: #fff; padding: 18px 28px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+  header h1 { font-size: 20px; margin: 0; font-weight: 600; letter-spacing: -.01em; }
+  header .sub { color: #98a2b3; font-size: 14px; }
+  header .right { margin-left: auto; display: flex; gap: 18px; align-items: center; font-size: 14px; color: #d0d5dd; }
+  .pill { display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px; border-radius: 999px; background: #1d2939; font-size: 13px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #98a2b3; }
+  .dot.live { background: #32d583; box-shadow: 0 0 0 3px rgba(50,213,131,.25); }
+  main { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; padding: 22px 28px; max-width: 1400px; margin: 0 auto; }
+  @media (max-width: 960px) { main { grid-template-columns: 1fr; padding: 16px; } }
+  .col { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px 22px; }
+  .card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 14px; font-weight: 600; }
+  .case-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 16px; flex-wrap: wrap; }
+  .case-id { font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
+  .kind { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
+  .status { margin-left: auto; font-size: 13px; font-weight: 600; padding: 4px 12px; border-radius: 999px; }
+  .s-ok { color: var(--ok); background: var(--ok-bg); } .s-warn { color: var(--warn); background: var(--warn-bg); }
+  .s-bad { color: var(--bad); background: var(--bad-bg); } .s-info { color: var(--info); background: var(--info-bg); }
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
+  .f { font-weight: 600; font-size: 16px; overflow-wrap: anywhere; }
+  .f.wide { grid-column: 1 / -1; }
+  .f > span:first-child { display: block; font-size: 12px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 1px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .chip { font-size: 13px; font-weight: 600; padding: 4px 11px; border-radius: 999px; }
+  .chip.ok { color: var(--ok); background: var(--ok-bg); } .chip.warn { color: var(--warn); background: var(--warn-bg); } .chip.bad { color: var(--bad); background: var(--bad-bg); }
+  .missing { color: var(--muted); font-style: italic; font-weight: 400; }
+  .note { color: var(--muted); font-size: 13px; margin-top: 12px; }
+  .tick { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 13px; font-weight: 700; flex: none; }
+  .tick.ok { background: var(--ok-bg); color: var(--ok); } .tick.warn { background: var(--warn-bg); color: var(--warn); }
+  .tick.bad { background: var(--bad-bg); color: var(--bad); }
+  pre.draft { white-space: pre-wrap; font: 14px/1.5 "Segoe UI", system-ui, sans-serif; background: #f9fafb; border: 1px solid var(--line);
+              border-radius: 8px; padding: 12px 16px; margin: 0 0 14px; }
+  .actions { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  button { font: inherit; font-weight: 600; border: 0; border-radius: 8px; padding: 10px 18px; cursor: pointer; }
+  button.primary { background: var(--accent); color: #fff; } button.primary:hover { background: #2f4ac0; }
+  button.secondary { background: #fff; color: var(--ink); border: 1px solid #d0d5dd; } button.secondary:hover { background: #f9fafb; }
+  button:disabled { opacity: .45; cursor: default; }
+  .key { font-family: var(--mono); font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+  .timeline { list-style: none; margin: 0; padding: 0; max-height: max(260px, calc(100vh - 190px)); overflow-y: auto; }
+  .col:has(#replay-card:not([hidden])) .timeline { max-height: max(220px, calc(100vh - 400px)); }
+  .timeline li { display: grid; grid-template-columns: 74px 22px 1fr; gap: 10px; padding: 9px 0; border-bottom: 1px solid #f2f4f7; animation: fade .4s ease; }
+  .timeline time { font-family: var(--mono); font-size: 12.5px; color: var(--muted); padding-top: 2px; }
+  .timeline .t { font-weight: 600; } .timeline .d { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+  .timeline .case-tag { font-family: var(--mono); font-size: 11.5px; color: var(--accent); margin-left: 6px; font-weight: 500; }
+  @keyframes fade { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+  .empty { text-align: center; padding: 42px 10px; color: var(--muted); }
+  .empty strong { display: block; color: var(--ink); font-size: 17px; margin-bottom: 6px; }
+  .pulse { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); margin: 0 auto 16px; animation: pulse 1.6s infinite; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(59,91,219,.45); } 70% { box-shadow: 0 0 0 14px rgba(59,91,219,0); } 100% { box-shadow: 0 0 0 0 rgba(59,91,219,0); } }
+  .dup { border-left: 4px solid var(--warn); }
+  .dup-count { font-size: 34px; font-weight: 700; color: var(--warn); line-height: 1; }
+  .dup-row { display: flex; gap: 18px; align-items: center; }
+  footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 6px 20px 26px; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>AgentMail .NET — Customer Operations Workflow Demo</h1>
+    <div class="sub">Payment dispute intake example</div>
+  </div>
+  <div class="right">
+    <span id="inbox">Inbox: …</span>
+    <span class="pill"><span id="live-dot" class="dot"></span><span id="live-text">Connecting</span></span>
+  </div>
+</header>
+
+<main>
+  <div class="col">
+    <section class="card" id="case-card"></section>
+    <section class="card" id="draft-card" hidden></section>
+  </div>
+  <div class="col">
+    <section class="card dup" id="replay-card" hidden></section>
+    <section class="card">
+      <h2>Live timeline</h2>
+      <ol class="timeline" id="timeline"></ol>
+    </section>
+  </div>
+</main>
+
+<footer>
+  Independent community project, not an official AgentMail product · demo data only · emails, webhooks and delivery events are live AgentMail traffic
+</footer>
+
+<script>
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const time = iso => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+const field = v => v ? esc(v) : '<span class="missing">not found</span>';
+
+const STATUS = {
+  AwaitingApproval: ["Awaiting human approval", "s-warn"],
+  Sending: ["Sending reply…", "s-info"],
+  ReplySent: ["Reply sent", "s-ok"],
+  ReplyDelivered: ["Reply delivered", "s-ok"],
+  ReplyBlocked: ["Reply blocked by policy", "s-bad"],
+  ReplyFailed: ["Reply failed", "s-bad"]
+};
+const MARK = { success: ["✓", "ok"], info: ["•", "ok"], warn: ["!", "warn"], danger: ["✕", "bad"] };
+
+let snapshot = null;
+let busy = false;
+let firstRender = true;
+
+async function refresh() {
+  snapshot = await (await fetch("/api/state")).json();
+  render(snapshot);
+}
+
+function render(s) {
+  document.getElementById("inbox").textContent = "Inbox: " + (s.inbox ?? "…");
+  const c = s.cases[s.cases.length - 1];
+  const caseCard = document.getElementById("case-card");
+
+  if (!c) {
+    caseCard.innerHTML = `<div class="empty"><div class="pulse"></div><strong>Waiting for a customer email</strong>
+      Send an email to <b>${esc(s.inbox)}</b></div>`;
+    document.getElementById("draft-card").hidden = true;
+  } else {
+    const [label, cls] = STATUS[c.status] ?? [c.status, "s-info"];
+    const dup = c.duplicatesBlocked;
+    caseCard.innerHTML = `
+      <div class="case-head"><span class="kind">Payment dispute</span><span class="case-id">${esc(c.id)}</span>
+        <span class="status ${cls}">${esc(label)}</span></div>
+      <div class="fields">
+        <div class="f wide"><span>Customer</span>${esc(c.customerName)} <span class="missing">&lt;${esc(c.customerAddress)}&gt;</span></div>
+        <div class="f"><span>Issue</span>${field(c.details.issue)}</div>
+        <div class="f"><span>Amount</span>${field(c.details.amount)}</div>
+        <div class="f"><span>Merchant</span>${field(c.details.merchant)}</div>
+        <div class="f"><span>Transaction date</span>${field(c.details.transactionDate)}</div>
+      </div>
+      <div class="note">Fields extracted from the email text by a ${esc(c.extractionMethod)} extractor · replaceable with an LLM</div>
+      <div class="chips">
+        <span class="chip ok">✓ AgentMail signature verified</span>
+        <span class="chip ok">✓ Typed .NET event</span>
+        <span class="chip ok">✓ First delivery · case created once</span>
+        <span class="chip ${c.recipientAllowed ? "ok" : "bad"}">${c.recipientAllowed ? "✓ Recipient allowlisted" : "✕ Recipient not allowlisted"}</span>
+        ${dup ? `<span class="chip warn">! ${dup} duplicate deliver${dup === 1 ? "y" : "ies"} blocked</span>` : ""}
+      </div>`;
+
+    const draft = document.getElementById("draft-card");
+    draft.hidden = false;
+    const canApprove = c.recipientAllowed && (c.status === "AwaitingApproval" || c.status === "ReplyFailed");
+    const sent = c.status === "ReplySent" || c.status === "ReplyDelivered";
+    draft.innerHTML = `<h2>${sent ? "Response sent" : "Draft response — requires human approval"}</h2>
+      <pre class="draft">${esc(c.draftReply)}</pre>
+      <div class="actions">
+        <button class="primary" id="approve" ${canApprove && !busy ? "" : "disabled"}>${sent ? "Approved ✓" : "Approve & Reply"}</button>
+        <span class="key">Idempotency-Key: ${esc(c.idempotencyKey)}</span>
+      </div>
+      ${c.error ? `<div class="note" style="color:var(--bad)">${esc(c.error)}</div>` : ""}`;
+    document.getElementById("approve").onclick = () => act(`/api/cases/${encodeURIComponent(c.id)}/approve`);
+  }
+
+  const tl = document.getElementById("timeline");
+  const atBottom = tl.scrollHeight - tl.scrollTop - tl.clientHeight < 40;
+  tl.innerHTML = s.timeline.length ? s.timeline.map(e => {
+    const [mark, cls] = MARK[e.kind] ?? MARK.info;
+    return `<li><time>${time(e.at)}</time><span class="tick ${cls}">${mark}</span>
+      <div><div class="t">${esc(e.title)}${e.caseId ? `<span class="case-tag">${esc(e.caseId)}</span>` : ""}</div>
+      ${e.detail ? `<div class="d">${esc(e.detail)}</div>` : ""}</div></li>`;
+  }).join("") : `<li><span></span><span></span><div class="d">Events appear here as AgentMail delivers them.</div></li>`;
+  if (atBottom || firstRender) tl.scrollTop = tl.scrollHeight;
+  firstRender = false;
+
+  const replay = document.getElementById("replay-card");
+  replay.hidden = !s.replay;
+  if (s.replay) {
+    const dupCase = s.cases.find(x => x.id === s.replay.caseId);
+    replay.innerHTML = `<h2>Delivery safety</h2>
+      <div class="dup-row"><div class="dup-count">${dupCase?.duplicatesBlocked ?? 0}</div>
+        <div>duplicate deliveries blocked for ${esc(s.replay.caseId)}<br>
+        <span class="note" style="margin:0">No second case · no second customer reply</span></div></div>
+      <div class="actions" style="margin-top:16px">
+        <button class="secondary" id="replay">Replay same delivery</button>
+        <span class="note" style="margin:0">Re-sends the exact captured bytes and AgentMail signature · <span id="replay-age"></span></span>
+      </div>`;
+    document.getElementById("replay").onclick = () => act("/api/replay");
+    updateReplayAge();
+  }
+}
+
+function updateReplayAge() {
+  const el = document.getElementById("replay-age");
+  if (!el || !snapshot?.replay) return;
+  const age = Math.max(0, Math.round((Date.now() - new Date(snapshot.replay.signedAt)) / 1000));
+  el.textContent = age <= 300
+    ? `signed ${age}s ago, inside the 5-minute window`
+    : `signed ${Math.floor(age / 60)} min ago, outside the 5-minute window: will be rejected as stale`;
+}
+
+async function act(url) {
+  busy = true;
+  if (snapshot) render(snapshot);
+  try { await fetch(url, { method: "POST", headers: { "X-Demo-Action": "1" } }); }
+  finally { busy = false; await refresh(); }
+}
+
+function connect() {
+  const events = new EventSource("/api/events");
+  const dot = document.getElementById("live-dot"), text = document.getElementById("live-text");
+  events.onopen = () => { dot.classList.add("live"); text.textContent = "Live"; };
+  events.onmessage = () => refresh();
+  events.onerror = () => { dot.classList.remove("live"); text.textContent = "Reconnecting"; };
+}
+
+connect();
+setInterval(updateReplayAge, 1000);
+</script>
+</body>
+</html>
